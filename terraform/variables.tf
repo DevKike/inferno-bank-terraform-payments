@@ -45,3 +45,13 @@ variable "private_route_table_id" {
   description = "VPC private route table id for dynamodb provider logic"
   type        = string
 }
+
+variable "start_payment_sqs_arn" {
+  description = "Start payment SQS ARN for Start payment lambda integration"
+  type        = string
+}
+
+variable "start_payment_sqs_url" {
+  description = "Start payment SQS URL for Start payment lambda integration"
+  type        = string
+}

@@ -1,6 +1,8 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { dynamoDbProvider } from '../../providers/dynamo-db.provider';
-import { ICard } from '../interfaces/card.interface';
+import { ICard } from '../../interfaces/card.interface';
+import { sqsProvider } from '../../providers/sqs.provider';
+import { v4 as uuidv4 } from 'uuid';
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -15,17 +17,28 @@ export const handler = async (
   const cardTablePartitionKeyName = 'uuid';
 
   try {
-    await dynamoDbProvider.getByPartitionKey<ICard>(
+    const { userId } = await dynamoDbProvider.getByPartitionKey<ICard>(
       process.env.CARD_TABLE_NAME!,
       cardTablePartitionKeyName,
       cardId
     );
 
+    await sqsProvider.send(process.env.START_PAYMENT_QUEUE_URL!, {
+      type: 'PAYMENT',
+      data: {
+        userId,
+        date: new Date().toISOString(),
+      },
+    });
+
+    const traceId = uuidv4();
+
     return {
       headers: { 'Content-Type': 'application/json' },
       statusCode: 200,
       body: JSON.stringify({
-        message: 'Init payment with success!',
+        message: 'Payment initialized with success!',
+        traceId,
       }),
     };
   } catch (error) {
@@ -33,3 +46,5 @@ export const handler = async (
     throw error;
   }
 };
+{
+}

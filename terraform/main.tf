@@ -8,11 +8,13 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# Init payment
 
 resource "aws_iam_role_policy_attachment" "lambda_payment_vpc_access" {
   role       = aws_iam_role.lambda_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
+
 
 resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
   name = "lambda-dynamodb-access"
@@ -24,7 +26,16 @@ resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
 resource "aws_vpc_endpoint" "dynamodb" {
   vpc_id          = var.vpc_id
   service_name    = "com.amazonaws.${var.app_region}.dynamodb"
-  route_table_ids = [var.public_route_table_id, var.private_route_table_id]
+  route_table_ids = [var.public_route_table_id]
+}
+
+resource "aws_vpc_endpoint" "sqs" {
+  vpc_id             = var.vpc_id
+  service_name       = "com.amazonaws.${var.app_region}.sqs"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = var.subnet_ids
+  security_group_ids = [var.security_group_id]
+  private_dns_enabled = true
 }
 
 resource "aws_lambda_function" "lambda_payment" {
@@ -32,8 +43,8 @@ resource "aws_lambda_function" "lambda_payment" {
   role             = aws_iam_role.lambda_execution.arn
   handler          = "index.handler"
   runtime          = "nodejs20.x"
-  filename         = data.archive_file.lambda_zip.output_path
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  filename         = data.archive_file.lambda_payment_zip.output_path
+  source_code_hash = data.archive_file.lambda_payment_zip.output_base64sha256
   timeout          = 30
   memory_size      = 256
 
@@ -44,8 +55,38 @@ resource "aws_lambda_function" "lambda_payment" {
 
   environment {
     variables = {
-      APP_REGION      = var.app_region,
-      CARD_TABLE_NAME = var.card_table_name
+      APP_REGION              = var.app_region,
+      CARD_TABLE_NAME         = var.card_table_name,
+      START_PAYMENT_QUEUE_URL = var.start_payment_sqs_url
+    }
+  }
+}
+
+# Start payment
+
+resource "aws_security_group_rule" "allow_lambda_to_sqs_endpoint" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = var.security_group_id
+  source_security_group_id = var.security_group_id
+  description              = "Allow lambda to reach SQS interface endpoint"
+}
+
+resource "aws_lambda_function" "start_payment" {
+  function_name    = "start-payment"
+  role             = aws_iam_role.lambda_execution.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  filename         = data.archive_file.lambda_start_payment_zip.output_path
+  source_code_hash = data.archive_file.lambda_start_payment_zip.output_base64sha256
+  timeout          = 30
+  memory_size      = 256
+
+  environment {
+    variables = {
+      APP_REGION = var.app_region,
     }
   }
 }

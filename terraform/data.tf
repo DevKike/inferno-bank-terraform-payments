@@ -11,7 +11,7 @@ data "aws_iam_policy_document" "lambda_assume_role_policy" {
   }
 }
 
-data "archive_file" "lambda_zip" {
+data "archive_file" "lambda_payment_zip" {
   type        = "zip"
   source_dir  = "${path.module}/../dist/handlers/payment"
   output_path = "${path.module}/dist/payment.zip"
@@ -22,14 +22,23 @@ data "aws_caller_identity" "current" {}
 data "aws_iam_policy_document" "lambda_payment_policy_document" {
   version = "2012-10-17"
 
+
   statement {
     effect = "Allow"
     actions = [
       "dynamodb:GetItem",
       "dynamodb:Query",
-      "dynamodb:Scan"
+      "dynamodb:Scan",
+      "sqs:SendMessage",
+      "sqs:ReceiveMessage"
     ]
 
-    resources = ["arn:aws:dynamodb:${var.app_region}:${data.aws_caller_identity.current.account_id}:table/${var.card_table_name}"]
+    resources = ["arn:aws:dynamodb:${var.app_region}:${data.aws_caller_identity.current.account_id}:table/${var.card_table_name}", var.start_payment_sqs_arn]
   }
+}
+
+data "archive_file" "lambda_start_payment_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../dist/handlers/start-payment"
+  output_path = "${path.module}/dist/start-payment.zip"
 }
