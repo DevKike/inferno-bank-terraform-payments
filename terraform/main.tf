@@ -1,0 +1,51 @@
+resource "aws_iam_role" "lambda_execution" {
+  name               = "lambda-payment-exec-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role_policy.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
+  role       = aws_iam_role.lambda_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+
+resource "aws_iam_role_policy_attachment" "lambda_payment_vpc_access" {
+  role       = aws_iam_role.lambda_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
+resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
+  name = "lambda-dynamodb-access"
+  role = aws_iam_role.lambda_execution.id
+
+  policy = data.aws_iam_policy_document.lambda_payment_policy_document.json
+}
+
+resource "aws_vpc_endpoint" "dynamodb" {
+  vpc_id          = var.vpc_id
+  service_name    = "com.amazonaws.${var.app_region}.dynamodb"
+  route_table_ids = [var.public_route_table_id, var.private_route_table_id]
+}
+
+resource "aws_lambda_function" "lambda_payment" {
+  function_name    = "payment"
+  role             = aws_iam_role.lambda_execution.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  timeout          = 30
+  memory_size      = 256
+
+  vpc_config {
+    subnet_ids         = var.subnet_ids
+    security_group_ids = [var.security_group_id]
+  }
+
+  environment {
+    variables = {
+      APP_REGION      = var.app_region,
+      CARD_TABLE_NAME = var.card_table_name
+    }
+  }
+}

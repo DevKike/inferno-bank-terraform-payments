@@ -1,0 +1,14 @@
+app_region = "us-east-1"
+aws_access_key = ""
+aws_secret_key = ""
+
+vpc_id = ""
+subnet_ids = [""]
+security_group_id = ""
+public_route_table_id = ""
+private_route_table_id = ""
+
+card_table_name = ""
+
+start_payment_sqs_arn = ""
+start_payment_sqs_url = ""
