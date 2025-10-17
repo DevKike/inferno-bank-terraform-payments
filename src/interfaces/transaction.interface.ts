@@ -10,3 +10,5 @@ export interface ITransaction {
   error?: string;
   timestamp: string;
 }
+
+export interface IUpdateTransaction extends Partial<ITransaction> {}

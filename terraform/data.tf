@@ -28,6 +28,7 @@ data "aws_iam_policy_document" "lambda_payment_policy_document" {
     actions = [
       "dynamodb:GetItem",
       "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
       "dynamodb:Query",
       "dynamodb:Scan",
       "sqs:SendMessage",
@@ -46,4 +47,10 @@ data "archive_file" "lambda_start_payment_zip" {
   type        = "zip"
   source_dir  = "${path.module}/../dist/handlers/start-payment"
   output_path = "${path.module}/dist/start-payment.zip"
+}
+
+data "archive_file" "lambda_check_balance_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../dist/handlers/check-balance"
+  output_path = "${path.module}/dist/check-balance.zip"
 }

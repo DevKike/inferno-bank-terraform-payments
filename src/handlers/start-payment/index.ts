@@ -12,13 +12,11 @@ export const handler = async (event: SQSEvent): Promise<void> => {
       const { type, data }: IPaymentMessage = JSON.parse(record.body);
 
       if (type === MESSAGE.PAYMENT) {
-        const traceId = uuidv4();
-
         const transaction: ITransaction = {
           cardId: data.cardId,
           userId: data.userId,
           service: data.service,
-          traceId,
+          traceId: data.traceId,
           status: 'INITIAL',
           timestamp: new Date().toISOString(),
         };
@@ -28,14 +26,19 @@ export const handler = async (event: SQSEvent): Promise<void> => {
           transaction
         );
 
-        await sqsProvider.send(process.env.CHECK_BALANCE_QUEUE_URL!, {
-          type: MESSAGE.START_PAYMENT,
-          data: {
-            traceId,
-          },
-        });
-
-        console.log('Worked!');
+        await sqsProvider.send<IPaymentMessage>(
+          process.env.CHECK_BALANCE_QUEUE_URL!,
+          {
+            type: MESSAGE.START_PAYMENT,
+            data: {
+              traceId: data.traceId,
+              userId: data.userId,
+              cardId: data.cardId,
+              service: data.service,
+              timestamp: new Date().toISOString(),
+            },
+          }
+        );
       }
     }
   } catch (error) {

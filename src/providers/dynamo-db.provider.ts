@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
 const dynamoDbClient = new DynamoDBClient({
   region: process.env.APP_REGION!,
@@ -42,6 +42,45 @@ export const dynamoDbProvider = {
         throw new Error(`Values by key: ${partitionKeyName} were not found`);
 
       return Items[0] as T;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  update: async <T extends Record<string, any>>(
+    tableName: string,
+    partitionKeyName: string,
+    partitionKeyValue: string | number,
+    dataToUpdate: T
+  ): Promise<any> => {
+    const updateExpressions: string[] = [];
+    const expressionAttributeNames: Record<string, string> = {};
+    const expressionAttributeValues: Record<string, any> = {};
+
+    Object.entries(dataToUpdate).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        updateExpressions.push(`#${key} = :${key}`);
+        expressionAttributeNames[`#${key}`] = key;
+        expressionAttributeValues[`:${key}`] = value;
+      }
+    });
+
+    if (updateExpressions.length === 0)
+      throw new Error('No valid fields to update');
+
+    try {
+      const command = new UpdateCommand({
+        TableName: tableName,
+        Key: { [partitionKeyName]: partitionKeyValue },
+        UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+        ReturnValues: 'ALL_NEW',
+      });
+
+      const { Attributes } = await dynamoDbClient.send(command);
+
+      return Attributes as T;
     } catch (error) {
       throw error;
     }

@@ -17,8 +17,8 @@ resource "aws_iam_role_policy_attachment" "lambda_payment_vpc_access" {
 
 
 resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
-  name = "lambda-dynamodb-access"
-  role = aws_iam_role.lambda_execution.id
+  name   = "lambda-dynamodb-access"
+  role   = aws_iam_role.lambda_execution.id
   policy = data.aws_iam_policy_document.lambda_payment_policy_document.json
 }
 
@@ -107,6 +107,32 @@ resource "aws_lambda_function" "start_payment" {
 resource "aws_lambda_event_source_mapping" "sqs_to_start_payment" {
   event_source_arn = var.start_payment_sqs_arn
   function_name    = aws_lambda_function.start_payment.arn
+  batch_size       = 10
+  enabled          = true
+}
+
+# Check balance
+resource "aws_lambda_function" "check_balance" {
+  function_name    = "check-balance"
+  role             = aws_iam_role.lambda_execution.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  filename         = data.archive_file.lambda_check_balance_zip.output_path
+  source_code_hash = data.archive_file.lambda_check_balance_zip.output_base64sha256
+  timeout          = 30
+  memory_size      = 256
+
+  environment {
+    variables = {
+      CARD_TABLE_NAME = var.card_table_name
+      PAYMENTS_TABLE_NAME     = var.payments_table_name
+    }
+  }
+}
+
+resource "aws_lambda_event_source_mapping" "sqs_to_check_balance" {
+  event_source_arn = var.check_balance_sqs_arn
+  function_name    = aws_lambda_function.check_balance.arn
   batch_size       = 10
   enabled          = true
 }
