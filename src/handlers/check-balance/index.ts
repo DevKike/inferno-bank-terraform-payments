@@ -9,7 +9,6 @@ export const handler = async (event: SQSEvent): Promise<void> => {
   try {
     for (const record of event.Records) {
       const { type, data }: IPaymentMessage = JSON.parse(record.body);
-      console.log('🚀 ~ handler ~ data:', data);
 
       const cardTablePartitionKeyName = 'uuid';
       const paymentsTablePartitionKeyName = 'traceId';
@@ -28,6 +27,7 @@ export const handler = async (event: SQSEvent): Promise<void> => {
             data.traceId,
             {
               status: 'FAILED',
+              error: 'Card does not have enough balance!',
             }
           );
           return;
