@@ -55,3 +55,17 @@ variable "start_payment_sqs_url" {
   description = "Start payment SQS URL for Start payment lambda integration"
   type        = string
 }
+
+variable "payments_table_name" {
+  description = "Payments table name for dynamodb provider logic"
+  type        = string
+}
+
+variable "check_balance_sqs_arn" {
+  description = "Start payment SQS ARN for Check balance lambda integration"
+}
+
+variable "check_balance_queue_url" {
+  description = "Check balance SQS URL for Check balance lambda integration"
+  type        = string
+}

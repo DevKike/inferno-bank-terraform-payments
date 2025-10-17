@@ -19,7 +19,6 @@ resource "aws_iam_role_policy_attachment" "lambda_payment_vpc_access" {
 resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
   name = "lambda-dynamodb-access"
   role = aws_iam_role.lambda_execution.id
-
   policy = data.aws_iam_policy_document.lambda_payment_policy_document.json
 }
 
@@ -29,14 +28,26 @@ resource "aws_vpc_endpoint" "dynamodb" {
   route_table_ids = [var.public_route_table_id]
 }
 
+resource "aws_security_group_rule" "allow_lambda_to_sqs_endpoint" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = var.security_group_id
+  source_security_group_id = var.security_group_id
+  description              = "Allow lambda to reach SQS interface endpoint"
+}
+
 resource "aws_vpc_endpoint" "sqs" {
-  vpc_id             = var.vpc_id
-  service_name       = "com.amazonaws.${var.app_region}.sqs"
-  vpc_endpoint_type  = "Interface"
-  subnet_ids         = var.subnet_ids
-  security_group_ids = [var.security_group_id]
+  vpc_id              = var.vpc_id
+  service_name        = "com.amazonaws.${var.app_region}.sqs"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = var.subnet_ids
+  security_group_ids  = [var.security_group_id]
   private_dns_enabled = true
 }
+
+# Payment
 
 resource "aws_lambda_function" "lambda_payment" {
   function_name    = "payment"
@@ -64,14 +75,15 @@ resource "aws_lambda_function" "lambda_payment" {
 
 # Start payment
 
-resource "aws_security_group_rule" "allow_lambda_to_sqs_endpoint" {
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
-  security_group_id        = var.security_group_id
-  source_security_group_id = var.security_group_id
-  description              = "Allow lambda to reach SQS interface endpoint"
+resource "aws_dynamodb_table" "payments" {
+  name         = var.payments_table_name
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "traceId"
+
+  attribute {
+    name = "traceId"
+    type = "S"
+  }
 }
 
 resource "aws_lambda_function" "start_payment" {
@@ -86,7 +98,15 @@ resource "aws_lambda_function" "start_payment" {
 
   environment {
     variables = {
-      APP_REGION = var.app_region,
+      PAYMENTS_TABLE_NAME     = var.payments_table_name
+      CHECK_BALANCE_QUEUE_URL = var.check_balance_queue_url
     }
   }
+}
+
+resource "aws_lambda_event_source_mapping" "sqs_to_start_payment" {
+  event_source_arn = var.start_payment_sqs_arn
+  function_name    = aws_lambda_function.start_payment.arn
+  batch_size       = 10
+  enabled          = true
 }

@@ -27,13 +27,18 @@ data "aws_iam_policy_document" "lambda_payment_policy_document" {
     effect = "Allow"
     actions = [
       "dynamodb:GetItem",
+      "dynamodb:PutItem",
       "dynamodb:Query",
       "dynamodb:Scan",
       "sqs:SendMessage",
-      "sqs:ReceiveMessage"
+      "sqs:SendMessageBatch",
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes",
+      "sqs:ChangeMessageVisibility"
     ]
 
-    resources = ["arn:aws:dynamodb:${var.app_region}:${data.aws_caller_identity.current.account_id}:table/${var.card_table_name}", var.start_payment_sqs_arn]
+    resources = ["arn:aws:dynamodb:${var.app_region}:${data.aws_caller_identity.current.account_id}:table/${var.card_table_name}", var.start_payment_sqs_arn, var.check_balance_sqs_arn, "arn:aws:dynamodb:${var.app_region}:${data.aws_caller_identity.current.account_id}:table/${var.payments_table_name}"]
   }
 }
 

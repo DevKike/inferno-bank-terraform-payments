@@ -3,6 +3,8 @@ import { dynamoDbProvider } from '../../providers/dynamo-db.provider';
 import { ICard } from '../../interfaces/card.interface';
 import { sqsProvider } from '../../providers/sqs.provider';
 import { v4 as uuidv4 } from 'uuid';
+import { MESSAGE } from '../../enums/message.enum';
+import { IPaymentMessage } from '../../interfaces/payment-message.interface';
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -23,15 +25,21 @@ export const handler = async (
       cardId
     );
 
-    await sqsProvider.send(process.env.START_PAYMENT_QUEUE_URL!, {
-      type: 'PAYMENT',
-      data: {
-        userId,
-        date: new Date().toISOString(),
-      },
-    });
-
     const traceId = uuidv4();
+
+    await sqsProvider.send<IPaymentMessage>(
+      process.env.START_PAYMENT_QUEUE_URL!,
+      {
+        type: MESSAGE.PAYMENT,
+        data: {
+          cardId,
+          userId,
+          service,
+          traceId,
+          timestamp: new Date().toISOString(),
+        },
+      }
+    );
 
     return {
       headers: { 'Content-Type': 'application/json' },
@@ -46,5 +54,3 @@ export const handler = async (
     throw error;
   }
 };
-{
-}

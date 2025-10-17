@@ -1,10 +1,11 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
+import { IService } from './service.interface';
 
 export interface IStartPaymentEvent extends Omit<APIGatewayProxyEvent, 'body'> {
   body: {
     userId: string;
     cardId: string;
-    service: Record<string, any>;
+    service: IService;
     status: string;
     traceId: string;
     timestamp: string;

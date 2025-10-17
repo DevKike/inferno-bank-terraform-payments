@@ -1,0 +1,4 @@
+export enum MESSAGE {
+  PAYMENT = 'PAYMENT',
+  START_PAYMENT = 'START_PAYMENT',
+}
