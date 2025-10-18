@@ -61,3 +61,8 @@ data "archive_file" "lambda_transaction_zip" {
   output_path = "${path.module}/dist/transaction.zip"
 }
 
+data "archive_file" "lambda_get_status_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../dist/handlers/get-status"
+  output_path = "${path.module}/dist/get-status.zip"
+}

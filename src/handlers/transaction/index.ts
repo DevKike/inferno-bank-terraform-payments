@@ -19,6 +19,22 @@ export const handler = async (event: SQSEvent): Promise<void> => {
       if (type === MESSAGE.CHECK_BALANCE) {
         const newBalance = data.cardBalance! - data.service.precio_mensual;
 
+        const apiResponse = await fetch(
+          'https://sq3quvo0g8.execute-api.us-east-1.amazonaws.com/prod/transactions/purchase',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              cardId: data.cardId,
+              merchant: data.service.proveedor,
+              amount: data.service.precio_mensual,
+            }),
+          }
+        );
+        console.log('🚀 ~ handler ~ apiResponse:', apiResponse);
+
         await dynamoDbProvider.update<IUpdateCard>(
           process.env.CARD_TABLE_NAME!,
           cardTablePartitionKeyName,

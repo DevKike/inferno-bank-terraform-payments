@@ -167,3 +167,23 @@ resource "aws_lambda_event_source_mapping" "sqs_to_transaction" {
   batch_size       = 10
   enabled          = true
 }
+
+# Get status
+
+resource "aws_lambda_function" "get_status" {
+  function_name    = "get-status"
+  role             = aws_iam_role.lambda_execution.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  filename         = data.archive_file.lambda_get_status_zip.output_path
+  source_code_hash = data.archive_file.lambda_get_status_zip.output_base64sha256
+  timeout          = 30
+  memory_size      = 256
+
+  environment {
+    variables = {
+      APP_REGION          = var.app_region
+      PAYMENTS_TABLE_NAME = var.payments_table_name
+    }
+  }
+}
