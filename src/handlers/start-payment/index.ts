@@ -1,7 +1,6 @@
 import { SQSEvent } from 'aws-lambda';
 import { MESSAGE } from '../../enums/message.enum';
 import { IPaymentMessage } from '../../interfaces/payment-message.interface';
-import { v4 as uuidv4 } from 'uuid';
 import { ITransaction } from '../../interfaces/transaction.interface';
 import { sqsProvider } from '../../providers/sqs.provider';
 import { dynamoDbProvider } from '../../providers/dynamo-db.provider';
@@ -31,10 +30,12 @@ export const handler = async (event: SQSEvent): Promise<void> => {
           {
             type: MESSAGE.START_PAYMENT,
             data: {
-              traceId: data.traceId,
               userId: data.userId,
               cardId: data.cardId,
+              cardBalance: data.cardBalance!,
+              cardCreatedAt: data.cardCreatedAt!,
               service: data.service,
+              traceId: data.traceId,
               timestamp: new Date().toISOString(),
             },
           }
