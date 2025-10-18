@@ -4,5 +4,7 @@ export interface ICard {
   status: string;
   type: string;
   userId: string;
-  createdAt: Date;
+  createdAt: string;
 }
+
+export interface IUpdateCard extends Partial<ICard> {}

@@ -19,7 +19,7 @@ export const handler = async (
   const cardTablePartitionKeyName = 'uuid';
 
   try {
-    const { userId } = await dynamoDbProvider.getByPartitionKey<ICard>(
+    const card = await dynamoDbProvider.getByPartitionKey<ICard>(
       process.env.CARD_TABLE_NAME!,
       cardTablePartitionKeyName,
       cardId
@@ -33,7 +33,9 @@ export const handler = async (
         type: MESSAGE.PAYMENT,
         data: {
           cardId,
-          userId,
+          userId: card.userId,
+          cardBalance: card.balance,
+          cardCreatedAt: card.createdAt,
           service,
           traceId,
           timestamp: new Date().toISOString(),

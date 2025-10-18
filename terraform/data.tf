@@ -39,7 +39,7 @@ data "aws_iam_policy_document" "lambda_payment_policy_document" {
       "sqs:ChangeMessageVisibility"
     ]
 
-    resources = ["arn:aws:dynamodb:${var.app_region}:${data.aws_caller_identity.current.account_id}:table/${var.card_table_name}", var.start_payment_sqs_arn, var.check_balance_sqs_arn, "arn:aws:dynamodb:${var.app_region}:${data.aws_caller_identity.current.account_id}:table/${var.payments_table_name}"]
+    resources = ["arn:aws:dynamodb:${var.app_region}:${data.aws_caller_identity.current.account_id}:table/${var.card_table_name}", var.start_payment_sqs_arn, var.check_balance_sqs_arn, "arn:aws:dynamodb:${var.app_region}:${data.aws_caller_identity.current.account_id}:table/${var.payments_table_name}", var.check_balance_sqs_arn, var.transactions_sqs_arn]
   }
 }
 
@@ -54,3 +54,10 @@ data "archive_file" "lambda_check_balance_zip" {
   source_dir  = "${path.module}/../dist/handlers/check-balance"
   output_path = "${path.module}/dist/check-balance.zip"
 }
+
+data "archive_file" "lambda_transaction_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../dist/handlers/transaction"
+  output_path = "${path.module}/dist/transaction.zip"
+}
+

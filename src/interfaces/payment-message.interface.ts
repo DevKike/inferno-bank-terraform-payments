@@ -6,6 +6,8 @@ export interface IPaymentMessage {
   data: {
     userId: string;
     cardId: string;
+    cardBalance?: number;
+    cardCreatedAt?: string,
     service: IService;
     traceId: string;
     timestamp: string;

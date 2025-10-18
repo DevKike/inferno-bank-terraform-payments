@@ -51,7 +51,9 @@ export const dynamoDbProvider = {
     tableName: string,
     partitionKeyName: string,
     partitionKeyValue: string | number,
-    dataToUpdate: T
+    dataToUpdate: T,
+    sortKeyName?: string,
+    sortKeyValue?: string
   ): Promise<any> => {
     const updateExpressions: string[] = [];
     const expressionAttributeNames: Record<string, string> = {};
@@ -68,10 +70,18 @@ export const dynamoDbProvider = {
     if (updateExpressions.length === 0)
       throw new Error('No valid fields to update');
 
+    const keyObject: Record<string, any> = {
+      [partitionKeyName]: partitionKeyValue,
+    };
+
+    if (sortKeyName && sortKeyValue !== undefined) {
+      keyObject[sortKeyName] = sortKeyValue;
+    }
+
     try {
       const command = new UpdateCommand({
         TableName: tableName,
-        Key: { [partitionKeyName]: partitionKeyValue },
+        Key: keyObject,
         UpdateExpression: `SET ${updateExpressions.join(', ')}`,
         ExpressionAttributeNames: expressionAttributeNames,
         ExpressionAttributeValues: expressionAttributeValues,

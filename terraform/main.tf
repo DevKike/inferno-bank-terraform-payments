@@ -98,6 +98,7 @@ resource "aws_lambda_function" "start_payment" {
 
   environment {
     variables = {
+      APP_REGION              = var.app_region
       PAYMENTS_TABLE_NAME     = var.payments_table_name
       CHECK_BALANCE_QUEUE_URL = var.check_balance_queue_url
     }
@@ -124,8 +125,10 @@ resource "aws_lambda_function" "check_balance" {
 
   environment {
     variables = {
-      CARD_TABLE_NAME = var.card_table_name
-      PAYMENTS_TABLE_NAME     = var.payments_table_name
+      APP_REGION             = var.app_region
+      CARD_TABLE_NAME        = var.card_table_name
+      PAYMENTS_TABLE_NAME    = var.payments_table_name
+      TRANSACTIONS_QUEUE_URL = var.transactions_sqs_url
     }
   }
 }
@@ -133,6 +136,34 @@ resource "aws_lambda_function" "check_balance" {
 resource "aws_lambda_event_source_mapping" "sqs_to_check_balance" {
   event_source_arn = var.check_balance_sqs_arn
   function_name    = aws_lambda_function.check_balance.arn
+  batch_size       = 10
+  enabled          = true
+}
+
+# Transaction
+
+resource "aws_lambda_function" "transaction" {
+  function_name    = "transaction"
+  role             = aws_iam_role.lambda_execution.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  filename         = data.archive_file.lambda_transaction_zip.output_path
+  source_code_hash = data.archive_file.lambda_transaction_zip.output_base64sha256
+  timeout          = 30
+  memory_size      = 256
+
+  environment {
+    variables = {
+      APP_REGION          = var.app_region
+      CARD_TABLE_NAME     = var.card_table_name
+      PAYMENTS_TABLE_NAME = var.payments_table_name
+    }
+  }
+}
+
+resource "aws_lambda_event_source_mapping" "sqs_to_transaction" {
+  event_source_arn = var.transactions_sqs_arn
+  function_name    = aws_lambda_function.transaction.arn
   batch_size       = 10
   enabled          = true
 }

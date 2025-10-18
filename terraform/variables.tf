@@ -69,3 +69,13 @@ variable "check_balance_queue_url" {
   description = "Check balance SQS URL for Check balance lambda integration"
   type        = string
 }
+
+variable "transactions_sqs_arn" {
+  description = "Transaction SQS ARN for transaction lambda integration"
+  type        = string
+}
+
+variable "transactions_sqs_url" {
+  description = "Transaction SQS ARN for transaction lambda integration"
+  type        = string
+}
